@@ -1,0 +1,45 @@
+# ref_finder - Script to call find and check the reference allele.
+
+*Version 0.1*
+
+`ref_finder` is a Python script created to find the reference (and alternative)
+allele using a BIM file and the reference genome (in *Fasta* format).
+
+
+## Dependencies
+
+The tool requires a standard [Python](http://python.org/) installation (>=3.4)
+with the following module:
+
+1. [pyfaidx](https://github.com/mdshw5/pyfaidx) version 0.3.0
+
+The tool has been tested on *Linux*, but should work on *Windows* and *MacOS*
+operating system as well.
+
+
+## Usage
+
+```console
+$ ref-finder --help
+usage: ref-finder [-h] [-v] [--debug] [--log LOGFILE] -i FILE -r FASTA
+                  [-o FILE]
+
+Finds the human reference allele.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --version         show program's version number and exit
+  --debug               Set the logging to debug
+  --log LOGFILE         The log file [ref_finder.log]
+
+Input Files:
+  -i FILE, --input FILE
+                        The input file (BIM format).
+  -r FASTA, --reference FASTA
+                        The human reference genome in FASTA format.
+
+Result File:
+  -o FILE, --output FILE
+                        The name of the output file [ref_alleles.vcf]
+```
+
