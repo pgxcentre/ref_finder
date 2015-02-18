@@ -163,21 +163,31 @@ def find_alt(ref, a1, a2):
     """Finds the alternative allele."""
     logging.debug("ref={}, a1={}, a2={}".format(ref, a1, a2))
 
+    # The reference allele is undetermined
     if pd.isnull(ref):
         return np.nan
 
+    # Being sure that everything is upper case
     a1 = a1.upper()
     a2 = a2.upper()
 
+    # Checks for undetermined alleles
+    if (a1 not in _complement) or (a2 not in _complement):
+        return np.nan
+
+    # a1 is the reference allele
     if ref == a1:
         return a2
 
+    # a2 is the reference allele
     if ref == a2:
         return a1
 
+    # a1 is the complement of the reference allele
     if ref == _complement[a1]:
         return _complement[a2]
 
+    # a2 is the complement of the reference allele
     if ref == _complement[a2]:
         return _complement[a1]
 
