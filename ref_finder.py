@@ -166,7 +166,6 @@ def find_alt(ref, a1, a2):
     if pd.isnull(ref):
         return np.nan
 
-    ref = ref.upper()
     a1 = a1.upper()
     a2 = a2.upper()
 
