@@ -2,16 +2,6 @@
 """The main script that do everything."""
 
 
-__author__ = "Louis-Philippe Lemieux Perreault"
-__copyright__ = "Copyright 2014, Beaulieu-Saucier Pharmacogenomics Centre"
-__credits__ = ["Louis-Philippe Lemieux Perreault", "Sylvie Provost"]
-__license__ = "GPL"
-__version__ = "0.1"
-__maintainer__ = "Louis-Philippe Lemieux Perreault"
-__email__ = "louis-philippe.lemieux.perreault@statgen.org"
-__status__ = "Development"
-
-
 import os
 import sys
 import logging
@@ -20,6 +10,16 @@ import argparse
 import numpy as np
 import pandas as pd
 from pyfaidx import Fasta
+
+
+__author__ = "Louis-Philippe Lemieux Perreault"
+__copyright__ = "Copyright 2014, Beaulieu-Saucier Pharmacogenomics Centre"
+__credits__ = ["Louis-Philippe Lemieux Perreault", "Sylvie Provost"]
+__license__ = "GPL"
+__version__ = "0.1"
+__maintainer__ = "Louis-Philippe Lemieux Perreault"
+__email__ = "louis-philippe.lemieux.perreault@statgen.org"
+__status__ = "Development"
 
 
 _complement = {"A": "T", "T": "A", "C": "G", "G": "C"}
@@ -92,8 +92,10 @@ def find_ref_alt(variations, reference):
     """Finds the reference and the alternative alleles."""
     # Finding the reference alleles
     logging.info("Finding the reference allele for all positions")
-    variations["ref"] = [find_ref(reference, *data)
-                        for data in variations.loc[:, ["chrom", "pos"]].values]
+    variations["ref"] = [
+        find_ref(reference, *data)
+        for data in variations.loc[:, ["chrom", "pos"]].values
+    ]
 
     # Are there any unknown reference alleles?
     unknown_ref = variations.ref.isnull()
@@ -105,8 +107,10 @@ def find_ref_alt(variations, reference):
 
     # Finding the alternative alleles
     logging.info("Finding the alternative allele for all positions")
-    variations["alt"] = [find_alt(*data)
-                    for data in variations.loc[:, ["ref", "a1", "a2"]].values]
+    variations["alt"] = [
+        find_alt(*data)
+        for data in variations.loc[:, ["ref", "a1", "a2"]].values
+    ]
 
     # Are there any NaN values?
     unknown_alt = variations.alt.isnull()
@@ -132,9 +136,13 @@ def write_vcf_file(variations, filename):
     with open(filename, "w") as i_file:
         print("##fileformat=VCFv4.1", file=i_file)
         print("#CHROM", "POS", "ID", "REF ALT", sep="\t", file=i_file)
-        variations[~missing].to_csv(i_file, sep="\t", header=False, index=False,
-                                    columns=["chrom", "pos", "name", "ref",
-                                             "alt"])
+        variations[~missing].to_csv(
+            i_file,
+            sep="\t",
+            header=False,
+            index=False,
+            columns=["chrom", "pos", "name", "ref", "alt"],
+        )
     logging.info("  - wrote {:,d} variations".format((~missing).sum()))
 
 
@@ -222,8 +230,9 @@ def parse_args(parser):
 
     # The input files
     group = parser.add_argument_group("Input Files")
-    group.add_argument("-i", "--input", type=str, metavar="FILE", required=True,
-                       dest="i_filename", help="The input file (BIM format).")
+    group.add_argument("-i", "--input", type=str, metavar="FILE",
+                       required=True, dest="i_filename",
+                       help="The input file (BIM format).")
     group.add_argument("-r", "--reference", type=str, metavar="FASTA",
                        required=True, help=("The human reference genome in "
                                             "FASTA format."))
@@ -249,4 +258,3 @@ class ProgramError(Exception):
 
 if __name__ == "__main__":
     main()
-
