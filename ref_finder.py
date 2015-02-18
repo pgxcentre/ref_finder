@@ -161,7 +161,6 @@ def find_ref(ref, chrom, pos):
 
 def find_alt(ref, a1, a2):
     """Finds the alternative allele (a2 is the most common)."""
-    logging.debug("ref={}, a1={}, a2={}".format(ref, a1, a2))
 
     # The reference allele is undetermined
     if pd.isnull(ref):
@@ -170,6 +169,14 @@ def find_alt(ref, a1, a2):
     # Being sure that everything is upper case
     a1 = a1.upper()
     a2 = a2.upper()
+
+    # The 0 is a special case (since the variation is homozygous major in the
+    # data set) (a2 will never be 0)
+    if a1 == "0" and a2 in _complement:
+        if (a2 != ref) and (_complement[a2] != ref):
+            logging.debug("ref={}, a1={}, a2={}".format(ref, a1, a2))
+            return a2
+        return np.nan
 
     # Checks for undetermined alleles
     if (a1 not in _complement) or (a2 not in _complement):
