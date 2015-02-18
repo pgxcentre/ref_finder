@@ -160,7 +160,7 @@ def find_ref(ref, chrom, pos):
 
 
 def find_alt(ref, a1, a2):
-    """Finds the alternative allele."""
+    """Finds the alternative allele (a2 is the most common)."""
     logging.debug("ref={}, a1={}, a2={}".format(ref, a1, a2))
 
     # The reference allele is undetermined
@@ -175,21 +175,21 @@ def find_alt(ref, a1, a2):
     if (a1 not in _complement) or (a2 not in _complement):
         return np.nan
 
-    # a1 is the reference allele
-    if ref == a1:
-        return a2
-
     # a2 is the reference allele
     if ref == a2:
         return a1
 
-    # a1 is the complement of the reference allele
-    if ref == _complement[a1]:
-        return _complement[a2]
-
     # a2 is the complement of the reference allele
     if ref == _complement[a2]:
         return _complement[a1]
+
+    # a1 is the reference allele
+    if ref == a1:
+        return a2
+
+    # a1 is the complement of the reference allele
+    if ref == _complement[a1]:
+        return _complement[a2]
 
     return np.nan
 
