@@ -56,7 +56,8 @@ _complement = {"A": "T", "T": "A", "C": "G", "G": "C"}
 def main(args=None):
     """The main function."""
     # Creating the option parser
-    desc = ("Finds the human reference allele.".format(__version__))
+    desc = ("Finds the human reference allele "
+            "(version {}).".format(__version__))
     parser = argparse.ArgumentParser(description=desc)
 
     # The files that will need closing
