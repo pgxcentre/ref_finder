@@ -135,7 +135,7 @@ def write_vcf_file(variations, filename):
     missing = variations.isnull().any(axis=1)
     with open(filename, "w") as i_file:
         print("##fileformat=VCFv4.1", file=i_file)
-        print("#CHROM", "POS", "ID", "REF ALT", sep="\t", file=i_file)
+        print("#CHROM", "POS", "ID", "REF", "ALT", sep="\t", file=i_file)
         variations[~missing].to_csv(
             i_file,
             sep="\t",
