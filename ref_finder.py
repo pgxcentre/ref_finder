@@ -163,12 +163,12 @@ def find_alt(ref, a1, a2):
     """Finds the alternative allele."""
     logging.debug("ref={}, a1={}, a2={}".format(ref, a1, a2))
 
-    try:
-        ref = ref.upper()
-        a1 = a1.upper()
-        a2 = a2.upper()
-    except Exception:
+    if pd.isnull(ref):
         return np.nan
+
+    ref = ref.upper()
+    a1 = a1.upper()
+    a2 = a2.upper()
 
     if ref == a1:
         return a2
