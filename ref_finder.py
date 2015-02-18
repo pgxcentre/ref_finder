@@ -6,6 +6,7 @@ import os
 import sys
 import logging
 import argparse
+import unittest
 
 import numpy as np
 import pandas as pd
@@ -25,25 +26,29 @@ __status__ = "Development"
 _complement = {"A": "T", "T": "A", "C": "G", "G": "C"}
 
 
-def main():
+def main(args=None):
     """The main function."""
     # Creating the option parser
     desc = ("Finds the human reference allele.".format(__version__))
     parser = argparse.ArgumentParser(description=desc)
 
+    # The files that will need closing
+    logging_fh = None
+    reference = None
+
     # We run the script
     try:
         # Parsing the options
-        args = parse_args(parser)
+        args = parse_args(parser, args)
         check_args(args)
 
         # Adding the logging capability
+        logging_fh = logging.FileHandler(args.log, mode="w")
         logging.basicConfig(
             format="[%(asctime)s %(levelname)s] %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
             level=logging.DEBUG if args.debug else logging.INFO,
-            handlers=[logging.StreamHandler(),
-                      logging.FileHandler(args.log, mode="w")]
+            handlers=[logging.StreamHandler(), logging_fh]
         )
         logging.info("Logging everything into '{}'".format(args.log))
 
@@ -67,6 +72,12 @@ def main():
     # Catching the ProgramError
     except ProgramError as e:
         parser.error(e.message)
+
+    finally:
+        if logging_fh is not None:
+            logging_fh.close()
+        if reference is not None:
+            reference.close()
 
 
 def read_variations(filename):
@@ -236,7 +247,7 @@ def check_args(args):
     return True
 
 
-def parse_args(parser):
+def parse_args(parser, args=None):
     """Parses the command line options and arguments."""
     parser.add_argument("-v", "--version", action="version",
                         version="%(prog)s {}".format(__version__))
@@ -261,6 +272,9 @@ def parse_args(parser):
                        dest="prefix", default="ref_alleles.vcf",
                        help="The name of the output file [%(default)s]")
 
+    if args is not None:
+        return parser.parse_args(args)
+
     return parser.parse_args()
 
 
@@ -273,6 +287,170 @@ class ProgramError(Exception):
     def __str__(self):
         return self.message
 
+
+class Test(unittest.TestCase):
+    def setUp(self):
+        """Setting up the test cases."""
+        # Tests with invalid data
+        self.prefix1 = os.path.join("test", "ref_finder_test_with_invalid")
+        args = [
+            "--log", self.prefix1 + ".log",
+            "--input", os.path.join("test", "test_invalid.bim"),
+            "--reference", os.path.join("test", "test.reference"),
+            "--output-prefix", self.prefix1,
+        ]
+        main(args=args)
+
+        # Tests without invalid data
+        self.prefix2 = os.path.join("test", "ref_finder_test")
+        args = [
+            "--log", self.prefix2 + ".log",
+            "--input", os.path.join("test", "test.bim"),
+            "--reference", os.path.join("test", "test.reference"),
+            "--output-prefix", self.prefix2,
+        ]
+        main(args=args)
+
+    def tearDown(self):
+        """Deletes the output files."""
+        import glob
+
+        # Deleting files for the invalid data test
+        for filename in glob.glob(self.prefix1 + ".*"):
+            os.remove(filename)
+
+        # Deleting files for the test
+        for filename in glob.glob(self.prefix2 + ".*"):
+            os.remove(filename)
+
+    def test_output_file_present(self):
+        """Check if all output files are present."""
+        suffixes = [".log", ".vcf"]
+        invalid_suffixes = [".invalid_ref", ".invalid_ref_alt"]
+
+        # The first test should have all the output files
+        checked_suffixes = suffixes + invalid_suffixes
+        for filename in [self.prefix1 + suffix for suffix in checked_suffixes]:
+            self.assertTrue(os.path.isfile(filename))
+
+        # The second test should not have the invalid files
+        for filename in [self.prefix2 + suffix for suffix in suffixes]:
+            self.assertTrue(os.path.isfile(filename))
+        for filename in [self.prefix2 + suffix for suffix in invalid_suffixes]:
+            self.assertFalse(os.path.isfile(filename))
+
+    def test_input_file_missing(self):
+        """Tests the script raises an error if an input is missing."""
+        # Missing BIM
+        args = [
+            "--log", self.prefix2 + ".log",
+            "--input", os.path.join("test", "test_missing.bim"),
+            "--reference", os.path.join("test", "test.reference"),
+            "--output-prefix", self.prefix2,
+        ]
+        with self.assertRaises(SystemExit) as cm:
+            main(args=args)
+            self.assertEqual(cm.exception.code, 2)
+
+        # Missing reference
+        args = [
+            "--log", self.prefix2 + ".log",
+            "--input", os.path.join("test", "test.bim"),
+            "--reference", os.path.join("test", "test_missing.reference"),
+            "--output-prefix", self.prefix2,
+        ]
+        with self.assertRaises(SystemExit) as cm:
+            main(args=args)
+            self.assertEqual(cm.exception.code, 2)
+
+    def test_invalid_reference(self):
+        """Tests the script raises an error if there is a missing chrom."""
+        args = [
+            "--log", self.prefix2 + ".log",
+            "--input", os.path.join("test", "test_invalid.bim"),
+            "--reference", os.path.join("test", "test.invalid_reference"),
+            "--output-prefix", self.prefix2,
+        ]
+        with self.assertRaises(SystemExit) as cm:
+            main(args=args)
+            self.assertEqual(cm.exception.code, 2)
+
+    def test_missing_index(self):
+        """Tests the script raises an error if the index is missing."""
+        args = [
+            "--log", self.prefix2 + ".log",
+            "--input", os.path.join("test", "test.bim"),
+            "--reference", os.path.join("test", "test.reference_no_index"),
+            "--output-prefix", self.prefix2,
+        ]
+        with self.assertRaises(SystemExit) as cm:
+            main(args=args)
+            self.assertEqual(cm.exception.code, 2)
+
+    def test_vcf(self):
+        """Checks the VCF results."""
+        # The valid file
+        output = (
+            "##fileformat=VCFv4.1\n"
+            "#CHROM\tPOS\tID\tREF\tALT\n"
+            "1\t1\tmarker_1\tA\tG\n"
+            "1\t2\tmarker_2\tC\tG\n"
+            "1\t3\tmarker_3\tA\tC\n"
+            "1\t4\tmarker_4\tC\tA\n"
+            "1\t9\tmarker_9\tT\tG\n"
+            "23\t1\tmarker_5\tA\tT\n"
+            "24\t1\tmarker_6\tA\tT\n"
+            "26\t1\tmarker_7\tA\tT\n"
+        )
+        content = None
+        with open(self.prefix2 + ".vcf", "r") as i_file:
+            content = i_file.read()
+        self.assertEqual(output, content)
+
+        # The invalid file
+        output = (
+            "##fileformat=VCFv4.1\n"
+            "#CHROM\tPOS\tID\tREF\tALT\n"
+            "1\t1\tmarker_1\tA\tG\n"
+            "1\t2\tmarker_2\tC\tG\n"
+            "1\t3\tmarker_3\tA\tC\n"
+            "1\t4\tmarker_4\tC\tA\n"
+            "1\t5\tmarker_5\tT\tC\n"
+            "1\t6\tmarker_6\tG\tT\n"
+            "1\t9\tmarker_9\tT\tG\n"
+            "1\t10\tmarker_10\tA\tG\n"
+        )
+        content = None
+        with open(self.prefix1 + ".vcf", "r") as i_file:
+            content = i_file.read()
+        self.assertEqual(output, content)
+
+    def test_invalid_ref(self):
+        """Checks the 'invalid_ref' file."""
+        output = (
+            "chrom\tpos\tname\n"
+            "1\t12\tmarker_12\n"
+            "3\t1\tmarker_15\n"
+        )
+        content = None
+        with open(self.prefix1 + ".invalid_ref", "r") as i_file:
+            content = i_file.read()
+        self.assertEqual(output, content)
+
+    def test_invalid_ref_alt(self):
+        """Checks the 'invalid_ref_alt' file."""
+        output = (
+            "chrom\tpos\tname\tref\ta1\ta2\n"
+            "1\t7\tmarker_7\tT\t0\tA\n"
+            "1\t8\tmarker_8\tA\t0\tA\n"
+            "1\t11\tmarker_11\tC\t1\t2\n"
+            "2\t1\tmarker_13\tA\tC\tG\n"
+            "2\t2\tmarker_14\tC\tA\tT\n"
+        )
+        content = None
+        with open(self.prefix1 + ".invalid_ref_alt", "r") as i_file:
+            content = i_file.read()
+        self.assertEqual(output, content)
 
 if __name__ == "__main__":
     main()

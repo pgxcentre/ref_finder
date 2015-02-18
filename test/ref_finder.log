@@ -1,7 +1,0 @@
-[2014-12-05 09:11:42 INFO] Logging everything into 'ref_finder.log'
-[2014-12-05 09:11:42 INFO] Reading variations 'data/input.bim'
-[2014-12-05 09:11:42 INFO]   - read 287 variations
-[2014-12-05 09:11:42 INFO] Reading the reference's index '/opt/human_reference/hg19.fasta'
-[2014-12-05 09:11:42 INFO]   - read 84 sequences
-[2014-12-05 09:11:42 INFO] Writing 'ref_alleles.vcf'
-[2014-12-05 09:11:42 INFO]   - wrote 287 variations
