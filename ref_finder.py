@@ -91,6 +91,7 @@ def read_reference(filename):
 def find_ref_alt(variations, reference):
     """Finds the reference and the alternative alleles."""
     # Finding the reference alleles
+    logging.info("Finding the reference allele for all positions")
     variations["ref"] = [find_ref(reference, *data)
                         for data in variations.loc[:, ["chrom", "pos"]].values]
 
@@ -103,6 +104,7 @@ def find_ref_alt(variations, reference):
             logging.warning("  - {}".format(name))
 
     # Finding the alternative alleles
+    logging.info("Finding the alternative allele for all positions")
     variations["alt"] = [find_alt(*data)
                     for data in variations.loc[:, ["ref", "a1", "a2"]].values]
 
@@ -151,6 +153,8 @@ def find_ref(ref, chrom, pos):
 
 def find_alt(ref, a1, a2):
     """Finds the alternative allele."""
+    logging.debug("ref={}, a1={}, a2={}".format(ref, a1, a2))
+
     try:
         ref = ref.upper()
         a1 = a1.upper()
