@@ -54,10 +54,10 @@ def main():
         reference = read_reference(args.reference)
 
         # Finds the reference and the alternative allele
-        variations = find_ref_alt(variations, reference)
+        variations = find_ref_alt(variations, reference, args.prefix)
 
         # Saving the VCF file
-        write_vcf_file(variations, args.output)
+        write_vcf_file(variations, args.prefix + ".vcf")
 
     # Catching the Ctrl^C
     except KeyboardInterrupt:
@@ -88,7 +88,7 @@ def read_reference(filename):
     return ref
 
 
-def find_ref_alt(variations, reference):
+def find_ref_alt(variations, reference, prefix):
     """Finds the reference and the alternative alleles."""
     # Finding the reference alleles
     logging.info("Finding the reference allele for all positions")
@@ -100,10 +100,15 @@ def find_ref_alt(variations, reference):
     # Are there any unknown reference alleles?
     unknown_ref = variations.ref.isnull()
     if unknown_ref.any():
-        logging.warning("The following variations had unknown or invalid "
-                        "REF alleles")
-        for name in variations.name[unknown_ref]:
-            logging.warning("  - {}".format(name))
+        logging.warning("There were variations with unknown or invalid "
+                        "REF alleles (see '{}.invalid_ref' for a "
+                        "list)".format(prefix))
+        variations[unknown_ref].to_csv(
+            prefix + ".invalid_ref",
+            sep="\t",
+            index=False,
+            columns=["chrom", "pos", "name"],
+        )
 
     # Finding the alternative alleles
     logging.info("Finding the alternative allele for all positions")
@@ -115,14 +120,15 @@ def find_ref_alt(variations, reference):
     # Are there any NaN values?
     unknown_alt = variations.alt.isnull()
     if (unknown_alt & (~unknown_ref)).any():
-        logging.warning("The following variations were incompatible with REF "
-                        "allele")
-        for index in variations.name[unknown_alt & (~unknown_ref)].index:
-            name, a1, a2, ref = variations.loc[index,
-                                               ["name", "a1", "a2", "ref"]]
-            logging.warning(
-                "  - {}: REF={}, GENO={}/{}".format(name, ref, a1, a2)
-            )
+        logging.warning("There were variations incompatible with REF "
+                        "allele (see '{}.invalid_ref_alt' for a "
+                        "list)".format(prefix))
+        variations[unknown_alt & (~unknown_ref)].to_csv(
+            prefix + ".invalid_ref_alt",
+            sep="\t",
+            index=False,
+            columns=["chrom", "pos", "name", "ref", "a1", "a2"],
+        )
 
     return variations
 
@@ -227,10 +233,6 @@ def check_args(args):
     if not os.path.isfile(args.reference + ".fai"):
         raise ProgramError("{}: no such file".format(args.reference + ".fai"))
 
-    # Checking if the output file is a VCF
-    if not args.output.endswith(".vcf"):
-        args.output += ".vcf"
-
     return True
 
 
@@ -255,8 +257,8 @@ def parse_args(parser):
 
     # The result file
     group = parser.add_argument_group("Result File")
-    group.add_argument("-o", "--output", type=str, metavar="FILE",
-                       default="ref_alleles.vcf",
+    group.add_argument("-o", "--output-prefix", type=str, metavar="FILE",
+                       dest="prefix", default="ref_alleles.vcf",
                        help="The name of the output file [%(default)s]")
 
     return parser.parse_args()
